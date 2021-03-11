@@ -2,15 +2,14 @@
 # Date: 3/3/2021
 # Description: Simulates an abstract backend version of the Korean strategy board game, "Janggi".
 
+import copy
+
 class JanggiGame:
     """
     Represents a strategy board game where two players compete to checkmate each other's "General" board piece. The
     game has a 9 x 10 board, a set of board spaces, a game state, a dictionary of players, a dictionary to convert
-    algebraic notation to standard coordinates, and a turn counter to
-    keep track of the turn order.
+    algebraic notation to standard coordinates, and a turn counter to keep track of the turn order.
     """
-    pass
-    # TODO
 
     def __init__(self):
         """
@@ -54,7 +53,7 @@ class JanggiGame:
         it is not.
         """
         player = self._players[player]
-        return player.get_general().get_is_in_check()
+        return player.get_is_in_check()
 
     def make_move(self, string_1, string_2):
         """
@@ -92,39 +91,97 @@ class JanggiGame:
 
         # player passes turn
         if start_position == end_position:
-            self._turn_counter += 1
-            self.print_board()
-            return True
+
+            if player.get_is_in_check() is True:    # player cannot pass turn while in check
+                return False
+
+            else:
+                self._turn_counter += 1
+                self.print_board()
+                return True
 
         # if player makes an illegal move, return False
         if end_position not in player_piece.get_move_range(self._board):
             return False
 
-        # if player makes a move that puts their general in check, returns False
 
-        # if player is in check and is still in check after the move is made, return False
+        params = (self._board, player, opponent, player_piece, opponent_piece, start_position, end_position)
+
+        # if player makes a move that leaves themselves in check, returns False
+        test_game = copy.deepcopy(self)
+        if self.move_leaves_player_in_check(test_game, start_position, end_position):
+            return False
 
         # check checkmate conditions
 
         # update game board and return True
 
-        # Capture opponent piece
-        if opponent_piece is not None:
-            self._board.remove_piece(end_position)
-            opponent.remove_piece(opponent_piece)
-            opponent.remove_occupied_space(end_position)
+        self.update_board(*params)
+        if player.get_is_in_check() is True:
+            player.set_is_in_check(False)
 
+        # Test whether opponent's general is in check
+        if opponent.get_general().get_position() in player.get_threat_range(self._board):
+            opponent.set_is_in_check(True)
 
-        # Update board
-        self._board.remove_piece(start_position)
-        self._board.place_piece(end_position, player_piece)
-        player_piece.set_position(end_position)
-        player.remove_occupied_space(start_position)
-        player.add_occupied_space(end_position)
+            # Test whether move leaves opponent's general in checkmate
+            if self.verify_checkmate(opponent) is True:
+                self._game_state = player.get_color().upper() + "_WON"
 
         self._turn_counter += 1
 
         self.print_board()
+
+        return True
+
+    def update_board(self, board, player, opponent, player_piece, opponent_piece, start_position, end_position):
+        """
+        Updates the actual (or simulated) game board.
+        """
+        # Capture opponent piece
+        if opponent_piece is not None:
+            board.remove_piece(end_position)
+            opponent.remove_piece(opponent_piece)
+            opponent.remove_occupied_space(end_position)
+
+        # Update board
+        board.remove_piece(start_position)
+        board.place_piece(end_position, player_piece)
+        player_piece.set_position(end_position)
+        player.remove_occupied_space(start_position)
+        player.add_occupied_space(end_position)
+
+
+    def move_leaves_player_in_check(self, test_game, test_start_position, test_end_position):
+        """
+        Updates a hypothetical move on a copy of the current board
+        """
+
+        test_board = test_game._board
+        test_player_piece = test_game._board.get_piece_at_coord(test_start_position)
+        test_player = test_player_piece.get_player()
+        test_opponent = test_game._players[test_player.get_opponent_color()]
+        test_opponent_piece = test_board.get_piece_at_coord(test_end_position)
+
+        self.update_board(test_board, test_player, test_opponent, test_player_piece, test_opponent_piece, test_start_position, test_end_position)
+
+        if test_player.get_general().get_position() in test_opponent.get_threat_range(test_board):
+            return True
+        else:
+            return False
+
+    def verify_checkmate(self, opponent):
+        """
+
+        """
+        for piece in opponent.get_pieces():
+
+            start_position = piece.get_position()
+            for move in piece.get_move_range(self._board):
+
+                test_game = copy.deepcopy(self)
+                if self.move_leaves_player_in_check(test_game, start_position, move) is False:
+                    return False
 
         return True
 
@@ -153,8 +210,6 @@ class Player:
     """
     Represents a player object. Has a color and a list of pieces as attributes.
     """
-    pass
-    # TODO
 
     def __init__(self, color):
         """
@@ -165,6 +220,7 @@ class Player:
         self._opponent_color = None
         self._pieces = []
         self._occupied_spaces = set()
+        self._threat_range = set()
         if self._color == "blue":
             self._pieces.append(General((4, 8)))
             self._pieces.append(Guard((3, 9)))
@@ -241,6 +297,28 @@ class Player:
 
         """
         return self._pieces[0]
+
+    def get_is_in_check(self):
+        """
+
+        """
+        return self.get_general().get_is_in_check()
+
+    def set_is_in_check(self, bool):
+        """
+
+        """
+        self.get_general().set_is_in_check(bool)
+
+    def get_threat_range(self, board):
+        """
+
+        """
+        self._threat_range.clear()
+
+        for piece in self._pieces:
+            self._threat_range = self._threat_range | piece.get_move_range(board)   # union of threat range and piece move range
+        return self._threat_range
 
     def add_occupied_space(self, coord):
         """
@@ -524,8 +602,13 @@ class General(BoardPiece):
     Represents a General. Has methods to get the set of legal moves as well as to change positions. Also has methods to
     check whether the piece is in check or checkmate. Inherits from BoardPiece.
     """
-    pass
-    # TODO
+
+    def __init__(self, position):
+        """
+
+        """
+        super().__init__(position)
+        self._is_in_check = False
 
     def __repr__(self):
         return self._color[0].upper() + "GN"
@@ -561,10 +644,17 @@ class General(BoardPiece):
 
         return self._move_range
 
-    def is_in_check(self):
+    def set_is_in_check(self, bool):
         """
 
         """
+        self._is_in_check = bool
+
+    def get_is_in_check(self):
+        """
+
+        """
+        return self._is_in_check
 
     def is_in_checkmate(self):
         """
