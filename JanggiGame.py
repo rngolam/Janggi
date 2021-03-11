@@ -56,7 +56,7 @@ class JanggiGame:
         player = self._players[player]
         return player.get_general().get_is_in_check()
 
-    def make_move(self, start_position, end_position):
+    def make_move(self, string_1, string_2):
         """
         Takes a start and end position (strings in algebraic notation) and converts them to tuple coordinates. First
         checks whether a piece exists in the starting location. If not, returns False. Then checks the piece's Player
@@ -66,8 +66,8 @@ class JanggiGame:
         Player's General in check. Finally, if all the above conditions are passed, returns True and updates the
         game board accordingly.
         """
-        start_position = self.convert_algebraic_notation(start_position)
-        end_position = self.convert_algebraic_notation(end_position)
+        start_position = self.convert_algebraic_notation(string_1)
+        end_position = self.convert_algebraic_notation(string_2)
 
         if self._game_state != "UNFINISHED":
             return False
@@ -528,7 +528,7 @@ class General(BoardPiece):
     # TODO
 
     def __repr__(self):
-        return self._player.get_color()[0].upper() + "GN"
+        return self._color[0].upper() + "GN"
 
     def get_move_range(self, board):
         """
@@ -578,7 +578,7 @@ class Guard(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "GD"
+        return self._color.upper()[0] + "GD"
 
     def get_move_range(self, board):
         """
@@ -618,7 +618,7 @@ class Horse(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "HS"
+        return self._color.upper()[0] + "HS"
 
     def get_move_range(self, board):
         """
@@ -667,7 +667,7 @@ class Elephant(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "EP"
+        return self._color.upper()[0] + "EP"
 
     def get_move_range(self, board):
         """
@@ -739,7 +739,7 @@ class Chariot(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "CH"
+        return self._color.upper()[0] + "CH"
 
     def get_move_range(self, board):
         """
@@ -752,73 +752,103 @@ class Chariot(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
+
         # check left
-        offset = -1
-        while (x_pos + offset, y_pos) in all_spaces:
-            piece = board.get_piece_at_coord((x_pos + offset, y_pos))
+        x_offset = -1
+        while (x_pos + x_offset, y_pos) in all_spaces:
+            piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
             if piece is not None:
-                if (x_pos + offset, y_pos) not in allied_spaces:
-                    self._move_range.add((x_pos + offset, y_pos))
+                if (x_pos + x_offset, y_pos) not in allied_spaces:
+                    self._move_range.add((x_pos + x_offset, y_pos))
                 break
-            self._move_range.add((x_pos + offset, y_pos))
-            offset -= 1
+            self._move_range.add((x_pos + x_offset, y_pos))
+            x_offset -= 1
 
         # check right
-        offset = 1
-        while (x_pos + offset, y_pos) in all_spaces:
-            piece = board.get_piece_at_coord((x_pos + offset, y_pos))
+        x_offset = 1
+        while (x_pos + x_offset, y_pos) in all_spaces:
+            piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
             if piece is not None:
-                if (x_pos + offset, y_pos) not in allied_spaces:
-                    self._move_range.add((x_pos + offset, y_pos))
+                if (x_pos + x_offset, y_pos) not in allied_spaces:
+                    self._move_range.add((x_pos + x_offset, y_pos))
                 break
-            self._move_range.add((x_pos + offset, y_pos))
-            offset += 1
-
-        # check down
-        offset = 1
-        while (x_pos, y_pos + offset) in all_spaces:
-            piece = board.get_piece_at_coord((x_pos, y_pos + offset))
-            if piece is not None:
-                if (x_pos, y_pos + offset) not in allied_spaces:
-                    self._move_range.add((x_pos, y_pos + offset))
-                break
-            self._move_range.add((x_pos, y_pos + offset))
-            offset += 1
+            self._move_range.add((x_pos + x_offset, y_pos))
+            x_offset += 1
 
         # check up
-        offset = -1
-        while (x_pos, y_pos + offset) in all_spaces:
-            piece = board.get_piece_at_coord((x_pos, y_pos + offset))
+        y_offset = -1
+        while (x_pos, y_pos + y_offset) in all_spaces:
+            piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
             if piece is not None:
-                if (x_pos, y_pos + offset) not in allied_spaces:
-                    self._move_range.add((x_pos, y_pos + offset))
+                if (x_pos, y_pos + y_offset) not in allied_spaces:
+                    self._move_range.add((x_pos, y_pos + y_offset))
                 break
-            self._move_range.add((x_pos, y_pos + offset))
-            offset -= 1
+            self._move_range.add((x_pos, y_pos + y_offset))
+            y_offset -= 1
+
+        # check down
+        y_offset = 1
+        while (x_pos, y_pos + y_offset) in all_spaces:
+            piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
+            if piece is not None:
+                if (x_pos, y_pos + y_offset) not in allied_spaces:
+                    self._move_range.add((x_pos, y_pos + y_offset))
+                break
+            self._move_range.add((x_pos, y_pos + y_offset))
+            y_offset += 1
 
         # check diagonal movement within palaces
         if self._position in palace_diagonals:
 
-            for x_coord in range(x_pos - 2, x_pos + 3):
-                for y_coord in range(y_pos - 2, y_pos + 3):
-                    if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals and \
-                            (x_coord, y_coord) != self._position:
+            # Piece is in center of palace
+            if x_pos == 4:  # piece is in palace center
+                for x_coord in range(x_pos - 1, x_pos + 2):
+                    for y_coord in range(y_pos - 1, y_pos + 2):
+                        if abs(x_coord - x_pos) == abs(y_coord - y_pos):
 
-                        piece = board.get_piece_at_coord((x_coord, y_coord))
+                            piece = board.get_piece_at_coord((x_coord, y_coord))
 
-                        if x_pos == 4:  # if piece is in center of palace
                             if piece is None or (x_coord, y_coord) not in allied_spaces:
                                 self._move_range.add((x_coord, y_coord))
 
-                        else:       # if piece is in palace corner
-                            if piece is not None:
-                                if (x_coord, y_coord) not in allied_spaces:
-                                    self._move_range.add((x_coord, y_coord))
-                                break
-                            self._move_range.add((x_coord, y_coord))
+            # Piece is in corner of palace
+            else:
+                palace_center = None
+
+                # Find palace center relative to position
+                for x_coord in range(x_pos - 1, x_pos + 2):
+                    for y_coord in range(y_pos - 1, y_pos + 2):
+
+                        # palace center found
+                        if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals and \
+                                (x_coord, y_coord) != self._position:
+
+                            palace_center = (x_coord, y_coord)
+                            break
+
+                if palace_center[0] < x_pos:
+                    x_offset = -1
+                else:
+                    x_offset = 1
+
+                if palace_center[1] < y_pos:
+                    y_offset = -1
+                else:
+                    y_offset = 1
+
+                while (x_pos + x_offset, y_pos + y_offset) in palace_diagonals:
+
+                    piece = board.get_piece_at_coord((x_pos + x_offset, y_pos + y_offset))
+
+                    if piece is not None:
+                        if (x_pos + x_offset, y_pos + y_offset) not in allied_spaces:
+                            self._move_range.add((x_pos + x_offset, y_pos + y_offset))
+                        break
+                    self._move_range.add((x_pos + x_offset, y_pos + y_offset))
+                    x_offset += x_offset
+                    y_offset += y_offset
 
         return self._move_range
-
 
 class Cannon(BoardPiece):
     """
@@ -826,7 +856,7 @@ class Cannon(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "CN"
+        return self._color.upper()[0] + "CN"
 
     def get_move_range(self, board):
         """
@@ -840,80 +870,80 @@ class Cannon(BoardPiece):
         x_pos, y_pos = self._position
 
         # check left
-        offset = -1
+        x_offset = -1
         pieces_between = 0
-        while (x_pos + offset, y_pos) in all_spaces:
+        while (x_pos + x_offset, y_pos) in all_spaces:
 
-            piece = board.get_piece_at_coord((x_pos + offset, y_pos))
+            piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos + offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
-                        self._move_range.add((x_pos + offset, y_pos))
+                    if ((x_pos + x_offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
+                        self._move_range.add((x_pos + x_offset, y_pos))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
-                    self._move_range.add((x_pos + offset, y_pos))
-            offset -= 1
+                    self._move_range.add((x_pos + x_offset, y_pos))
+            x_offset -= 1
 
         # check right
-        offset = 1
+        x_offset = 1
         pieces_between = 0
-        while (x_pos + offset, y_pos) in all_spaces:
+        while (x_pos + x_offset, y_pos) in all_spaces:
 
-            piece = board.get_piece_at_coord((x_pos + offset, y_pos))
+            piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos + offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
-                        self._move_range.add((x_pos + offset, y_pos))
+                    if ((x_pos + x_offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
+                        self._move_range.add((x_pos + x_offset, y_pos))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
-                    self._move_range.add((x_pos + offset, y_pos))
-            offset += 1
-
-        # check down
-        offset = 1
-        pieces_between = 0
-        while (x_pos, y_pos + offset) in all_spaces:
-
-            piece = board.get_piece_at_coord((x_pos, y_pos + offset))
-
-            if piece is not None:
-                if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos, y_pos + offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
-                        self._move_range.add((x_pos, y_pos + offset))
-                    break
-                pieces_between += 1
-
-            else:
-                if pieces_between == 1:
-                    self._move_range.add((x_pos, y_pos + offset))
-            offset += 1
+                    self._move_range.add((x_pos + x_offset, y_pos))
+            x_offset += 1
 
         # check up
-        offset = -1
+        y_offset = -1
         pieces_between = 0
-        while (x_pos, y_pos + offset) in all_spaces:
+        while (x_pos, y_pos + y_offset) in all_spaces:
 
-            piece = board.get_piece_at_coord((x_pos, y_pos + offset))
+            piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos, y_pos + offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
-                        self._move_range.add((x_pos, y_pos + offset))
+                    if ((x_pos, y_pos + y_offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
+                        self._move_range.add((x_pos, y_pos + y_offset))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
-                    self._move_range.add((x_pos, y_pos + offset))
-            offset -= 1
+                    self._move_range.add((x_pos, y_pos + y_offset))
+            y_offset -= 1
+
+        # check down
+        y_offset = 1
+        pieces_between = 0
+        while (x_pos, y_pos + y_offset) in all_spaces:
+
+            piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
+
+            if piece is not None:
+                if pieces_between == 1 or isinstance(piece, Cannon):
+                    if ((x_pos, y_pos + y_offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
+                        self._move_range.add((x_pos, y_pos + y_offset))
+                    break
+                pieces_between += 1
+
+            else:
+                if pieces_between == 1:
+                    self._move_range.add((x_pos, y_pos + y_offset))
+            y_offset += 1
 
         # check diagonal movement within palaces
         # diagonal movement is only permitted if center of palace is occupied
@@ -921,26 +951,35 @@ class Cannon(BoardPiece):
 
             palace_center = None
 
-            # find palace center coordinate
+            # Find palace center relative to position
             for x_coord in range(x_pos - 1, x_pos + 2):
                 for y_coord in range(y_pos - 1, y_pos + 2):
-                    if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals:
+
+                    # palace center found
+                    if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals and \
+                            (x_coord, y_coord) != self._position:
                         palace_center = (x_coord, y_coord)
+                        break
 
-            palace_corners = palace_diagonals - palace_center
+            piece_at_center = board.get_piece_at_coord(palace_center)
 
-            if board.get_piece_at_coord(palace_center) is not None:
+            # Cannon can only jump diagonally within palace if center space is occupied by a non-Cannon piece
+            if piece_at_center is not None and isinstance(piece_at_center, Cannon) is False:
 
-                for x_coord in range(x_pos - 2, x_pos + 3):
-                    for y_coord in range(y_pos - 2, y_pos + 3):
-                        if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_corners and \
-                                (x_coord, y_coord) != self._position:
+                if palace_center[0] < x_pos:
+                    x_offset = -2
+                else:
+                    x_offset = 2
 
-                            piece = board.get_piece_at_coord((x_coord, y_coord))
+                if palace_center[1] < y_pos:
+                    y_offset = -2
+                else:
+                    y_offset = 2
 
-                            if piece is not None and isinstance(piece, Cannon) is False and (x_coord, y_coord) not in \
-                                    allied_spaces:
-                                self._move_range.add((x_coord, y_coord))
+                piece_at_destination = board.get_piece_at_coord((x_pos + x_offset, y_pos + y_offset))
+
+                if piece_at_destination is None or (piece_at_destination is not None and (x_pos + x_offset, y_pos + y_offset) not in allied_spaces):
+                    self._move_range.add((x_pos + x_offset, y_pos + y_offset))
 
         return self._move_range
 
@@ -951,7 +990,7 @@ class Soldier(BoardPiece):
     """
 
     def __repr__(self):
-        return self._player.get_color().upper()[0] + "SD"
+        return self._color.upper()[0] + "SD"
 
     def get_move_range(self, board):
         """
