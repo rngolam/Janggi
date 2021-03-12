@@ -1,22 +1,26 @@
 # Author: Richard Ngo-Lam
-# Date: 3/3/2021
+# Date: 3/11/2021
 # Description: Simulates an abstract backend version of the Korean strategy board game, "Janggi".
 
 import copy
 
+
 class JanggiGame:
     """
     Represents a strategy board game where two players compete to checkmate each other's "General" board piece. The
-    game has a 9 x 10 board, a set of board spaces, a game state, a dictionary of players, a dictionary to convert
-    algebraic notation to standard coordinates, and a turn counter to keep track of the turn order.
+    game has a 9 x 10 GameBoard, a set of board Spaces, a game state, a dictionary of players, a dictionary to convert
+    algebraic notation to standard coordinates, and a turn counter to keep track of the turn order. Has methods to
+    get the current game state, get whether a certain Player is in check, make a move, update the GameBoard, verify
+    whether a move leaves a Player in check, verify checkmate, convert algebraic notation to tuple coordinates, and
+    print the GameBoard.
     """
 
     def __init__(self):
         """
-        Initializes a Janggi game with a 9 x 10 board, a set of board spaces, a game state, a list of Players, and
-        a turn counter to keep track of the turn order.
+        Initializes a Janggi game with a 9 x 10 GameBoard, a dictionary of Players, a set of board spaces, a game state,
+        a game state, a turn counter, and a dictionary of algebraic notation inputs with their corresponding
+        coordinates.
         """
-
         self._board = GameBoard()
         self._board_x_length = 9
         self._board_y_length = 10
@@ -28,6 +32,7 @@ class JanggiGame:
         self._turn_counter = 0
         self._algebraic_notation = {}
 
+        # Place player pieces on board
         for player in self._players:
             for piece in self._players[player].get_pieces():
                 starting_pos = piece.get_position()
@@ -41,6 +46,9 @@ class JanggiGame:
 
         self.print_board()
 
+    def __repr__(self):
+        return "JanggiGame(" + repr(self._game_state) + ", " + repr(self._turn_counter) + ")"
+
     def get_game_state(self):
         """
         Returns the game state.
@@ -49,25 +57,25 @@ class JanggiGame:
 
     def is_in_check(self, player):
         """
-        Takes a player color as a parameter and returns True if their General board piece is in check and False if
-        it is not.
+        Takes a Player color as a parameter and returns True if that Player is in check and False if they are not.
         """
         player = self._players[player]
         return player.get_is_in_check()
 
     def make_move(self, string_1, string_2):
         """
-        Takes a start and end position (strings in algebraic notation) and converts them to tuple coordinates. First
-        checks whether a piece exists in the starting location. If not, returns False. Then checks the piece's Player
-        color. If it does not correspond with the Player's current turn, returns False. Lastly, checks that pieces set
-        of legal moves. If the end location is not in the set of legal moves, returns False. Additionally, checks
-        whether the current move will either put the Player's own General in check (returns False) or the opposing
-        Player's General in check. Finally, if all the above conditions are passed, returns True and updates the
-        game board accordingly.
+        Takes a start and end position (strings in algebraic notation) and converts them to tuple coordinates. Returns
+        False if a move is attempted after the game is already finished, if a selected space is empty, if a Player acts
+        out of turn, if a Player passes their turn while in check, if a Player passes their turn while in check, if a
+        move is outside of a Piece's range, or if a Player makes a move that leaves them in check. Otherwise, updates
+        the GameBoard and tests whether the move leaves the Player's opponent in check (and if so, verifies checkmate
+        conditions to determine a winner) and returns True.
         """
+
         start_position = self.convert_algebraic_notation(string_1)
         end_position = self.convert_algebraic_notation(string_2)
 
+        # Player attempts move during finished game
         if self._game_state != "UNFINISHED":
             return False
 
@@ -85,14 +93,14 @@ class JanggiGame:
         else:
             turn = "red"
 
-        # if player selects a piece that is not theirs, return False
+        # if Player acts out of turn
         if player.get_color() != turn:
             return False
 
-        # player passes turn
+        # Player passes turn
         if start_position == end_position:
 
-            if player.get_is_in_check() is True:    # player cannot pass turn while in check
+            if player.get_is_in_check() is True:    # Player cannot pass turn while in check
                 return False
 
             else:
@@ -100,31 +108,30 @@ class JanggiGame:
                 self.print_board()
                 return True
 
-        # if player makes an illegal move, return False
+        # Player attempts to move outside of a Piece's range
         if end_position not in player_piece.get_move_range(self._board):
             return False
 
-
-        params = (self._board, player, opponent, player_piece, opponent_piece, start_position, end_position)
-
-        # if player makes a move that leaves themselves in check, returns False
+        # Player makes a move that leaves themselves in check, returns False
+        # Copy the current game state and simulate whether the move leaves Player in check
         test_game = copy.deepcopy(self)
         if self.move_leaves_player_in_check(test_game, start_position, end_position):
             return False
 
-        # check checkmate conditions
+        # At this point, all criteria for a legal move have been satisfied
 
-        # update game board and return True
+        # Update the game board
+        self.update_board(self._board, player, opponent, player_piece, opponent_piece, start_position, end_position)
 
-        self.update_board(*params)
+        # Player made a legal move that counters any check
         if player.get_is_in_check() is True:
             player.set_is_in_check(False)
 
-        # Test whether opponent's general is in check
+        # If the opponent's General is in the Player's list of attacked spaces, they are in check
         if opponent.get_general().get_position() in player.get_threat_range(self._board):
             opponent.set_is_in_check(True)
 
-            # Test whether move leaves opponent's general in checkmate
+            # Test whether this move results in a checkmate
             if self.verify_checkmate(opponent) is True:
                 self._game_state = player.get_color().upper() + "_WON"
 
@@ -136,50 +143,59 @@ class JanggiGame:
 
     def update_board(self, board, player, opponent, player_piece, opponent_piece, start_position, end_position):
         """
-        Updates the actual (or simulated) game board.
+        Updates the actual (or simulated) GameBoard by removing any captured pieces (if applicable) and updating the
+        position of the moving Piece.
         """
-        # Capture opponent piece
+
+        # Capture opponent Piece
         if opponent_piece is not None:
             board.remove_piece(end_position)
             opponent.remove_piece(opponent_piece)
             opponent.remove_occupied_space(end_position)
 
-        # Update board
+        # Update GameBoard and position of moving Piece
         board.remove_piece(start_position)
         board.place_piece(end_position, player_piece)
         player_piece.set_position(end_position)
         player.remove_occupied_space(start_position)
         player.add_occupied_space(end_position)
 
-
     def move_leaves_player_in_check(self, test_game, test_start_position, test_end_position):
         """
-        Updates a hypothetical move on a copy of the current board
+        Simulates the parameterized Piece movement on a copy of the current game state. Returns True if the move
+        leaves the Player in check or False if not.
         """
 
-        test_board = test_game._board
-        test_player_piece = test_game._board.get_piece_at_coord(test_start_position)
+        test_board = test_game.get_board()
+        test_player_piece = test_board.get_piece_at_coord(test_start_position)
         test_player = test_player_piece.get_player()
-        test_opponent = test_game._players[test_player.get_opponent_color()]
+        test_opponent = test_game.get_players()[test_player.get_opponent_color()]
         test_opponent_piece = test_board.get_piece_at_coord(test_end_position)
 
-        self.update_board(test_board, test_player, test_opponent, test_player_piece, test_opponent_piece, test_start_position, test_end_position)
+        self.update_board(test_board, test_player, test_opponent, test_player_piece, test_opponent_piece,
+                          test_start_position, test_end_position)
 
         if test_player.get_general().get_position() in test_opponent.get_threat_range(test_board):
             return True
         else:
             return False
 
-    def verify_checkmate(self, opponent):
+    def verify_checkmate(self, player):
+        """
+        Takes a parameterized Player currently in check and iterates over their collection of Pieces, determining valid
+        moves for each Piece. Creates a copy of the current game state and simulates each movement, verifying whether
+        the move leaves the Player in check. If the move does not leave the Player in check, returns False. If all moves
+        have been exhausted, returns True, indicating checkmate.
         """
 
-        """
-        for piece in opponent.get_pieces():
+        for piece in player.get_pieces():
 
-            start_position = piece.get_position()
             for move in piece.get_move_range(self._board):
 
+                # Create copy of the current game state and simulate movement. If a move does not leave the Player in
+                # check, then the Player has a move available to counter the check, nullifying the checkmate condition.
                 test_game = copy.deepcopy(self)
+                start_position = piece.get_position()
                 if self.move_leaves_player_in_check(test_game, start_position, move) is False:
                     return False
 
@@ -189,15 +205,29 @@ class JanggiGame:
         """
         Takes a string in algebraic notation, converts it to a coordinate tuple, and returns the tuple.
         """
+
         x_coord = self._algebraic_notation[alg_not[0]]
 
         if len(alg_not) < 3:
             y_coord = self._algebraic_notation[alg_not[1]]
 
+        # If second character in string is 2 digits in length, concatenate the second and third character
         else:
             y_coord = self._algebraic_notation[alg_not[1] + alg_not[2]]
 
-        return (x_coord, y_coord)
+        return x_coord, y_coord
+
+    def get_board(self):
+        """
+        Returns the Game's GameBoard.
+        """
+        return self._board
+
+    def get_players(self):
+        """
+        Returns the Game's Player dictionary.
+        """
+        return self._players
 
     def print_board(self):
         """
@@ -208,19 +238,27 @@ class JanggiGame:
 
 class Player:
     """
-    Represents a player object. Has a color and a list of pieces as attributes.
+    Represents a Player object. Has a color, an opponent color, a list of Pieces, a set of occupied Spaces, and a set of
+    threatened Spaces. Has methods to get the Player's color, get their opponent's color, get their list of Pieces,
+    remove a Piece from their collection, get their General Piece, get whether their General Piece is in check, set
+    whether their General Piece is in check, get their threat range, add to and remove from their set of occupied
+    Spaces, and get their set of occupied Spaces.
     """
 
     def __init__(self, color):
         """
-        Initializes a player with the parameterized color. Also creates a list of pieces with starting positions
-        based on the player's color. Assigns the Player object to these pieces.
+        Initializes a Player with the parameterized color. Also has initial attributes for their opponent's color, a
+        list of Pieces, a set of occupied Spaces, and a set of threatened Spaces.
         """
         self._color = color
         self._opponent_color = None
         self._pieces = []
         self._occupied_spaces = set()
         self._threat_range = set()
+
+        # Instantiate BoardPieces at the specified coordinates depending on Player color, add them to the Player's
+        # list of Pieces, assign the Player to to the Piece, and adds the Piece's position to the Player's set of
+        # occupied Spaces.
         if self._color == "blue":
             self._pieces.append(General((4, 8)))
             self._pieces.append(Guard((3, 9)))
@@ -270,80 +308,93 @@ class Player:
 
     def get_color(self):
         """
-
+        Returns the Player's color.
         """
         return self._color
 
     def get_opponent_color(self):
         """
-
+        Returns the Player's opponent's color.
         """
         return self._opponent_color
 
     def get_pieces(self):
         """
-
+        Returns the Player's list of Pieces.
         """
         return self._pieces
 
     def remove_piece(self, piece):
         """
-
+        Removes the parameterized Piece from the Player's list of Pieces.
         """
         self._pieces.remove(piece)
 
     def get_general(self):
         """
-
+        Returns the instance of the Player's General Piece.
         """
         return self._pieces[0]
 
     def get_is_in_check(self):
         """
-
+        Returns whether the Player's General Piece is in check.
         """
         return self.get_general().get_is_in_check()
 
-    def set_is_in_check(self, bool):
+    def set_is_in_check(self, bool_val):
         """
-
+        Sets whether the Player's General Piece is in check based on the parameterized boolean value.
         """
-        self.get_general().set_is_in_check(bool)
+        self.get_general().set_is_in_check(bool_val)
 
     def get_threat_range(self, board):
         """
-
+        Takes the parameterized GameBoard and returns a set of all of the Player's threatened Spaces.
         """
         self._threat_range.clear()
 
+        # Iterate through Player's list of Pieces, get the Piece's set of possible moves, and adds it to the total set
+        # of threatened coordinates via the set union operation
         for piece in self._pieces:
-            self._threat_range = self._threat_range | piece.get_move_range(board)   # union of threat range and piece move range
+            self._threat_range = self._threat_range | piece.get_move_range(board)
+
         return self._threat_range
 
     def add_occupied_space(self, coord):
         """
-
+        Takes the parameterized coordinate and adds it to the Player's set of occupied Spaces.
         """
         self._occupied_spaces.add(coord)
 
     def remove_occupied_space(self, coord):
         """
-
+        Takes the parameterized coordinate and removes it from the Player's set of occupied Spaces.
         """
         self._occupied_spaces.remove(coord)
 
     def get_occupied_spaces(self):
         """
-
+        Returns the Player's set of occupied Spaces.
         """
         return self._occupied_spaces
 
 
 class GameBoard:
     """
-
+    Represents a GameBoard object. Has a 9 x 10 2D array of spaces, a set of all Space coordinates on the board,
+    a set of all available (i.e. unoccupied) Spaces, a set of defining the Board's Palace areas, and a set defining
+    the Spaces in the Board's Palace areas connected by diagonals. Also has methods to place a Piece on the Board,
+    remove a Piece from the Board, get the set of all Board Spaces, get the set of all available Spaces, get the set
+    of all occupied Spaces, get the set of all Palace coordinates, get the set of all Palace coordinates connected by
+    diagonal pathways, get the Piece at a specified coordinate, and print the GameBoard.
     """
     def __init__(self):
+        """
+        Initializes the GameBoard. Has a 9 x 10 2D array of spaces, a set of all Space coordinates on the board,
+        a set of all available (i.e. unoccupied) Spaces, a set of defining the Board's Palace areas, and a set defining
+        the Spaces in the Board's Palace areas connected by diagonals as initial attributes.
+        """
         self._spaces = []
         self._x_length = 9
         self._y_length = 10
@@ -352,6 +403,8 @@ class GameBoard:
         self._palace_spaces = set()
         self._palace_diagonals = set()
 
+        # Populate GameBoard, instantiating empty Space objects at each coordinate and adding the coordinate to the
+        # set of all Spaces.
         for column in range(self._x_length):
             self._spaces.append([])
 
@@ -362,7 +415,8 @@ class GameBoard:
 
         self._available_spaces = set(self._all_spaces)
 
-        # Define palace spaces
+        # Define Palace Spaces as well as those connected by diagonal pathways. Adds these coordinates to the
+        # corresponding data member sets
         counter = 0
         for column in range(3, 6):
             for row in range(7, 10):
@@ -384,10 +438,13 @@ class GameBoard:
             x_coord, y_coord = coord
             self._spaces[x_coord][y_coord] = PalaceSpace(coord)
 
+    def __repr__(self):
+        return "GameBoard"
 
     def place_piece(self, coord, piece):
         """
-
+        Takes a coordinate and Piece object as parameters, places the Piece on that Space, and updates the set of
+        available Spaces.
         """
         x_coord, y_coord = coord
         space = self._spaces[x_coord][y_coord]
@@ -396,7 +453,7 @@ class GameBoard:
 
     def remove_piece(self, coord):
         """
-
+        Removes the Piece from the parameterized Coordinate and updates the set of available Spaces.
         """
         x_coord, y_coord = coord
         space = self._spaces[x_coord][y_coord]
@@ -405,37 +462,38 @@ class GameBoard:
 
     def get_all_spaces(self):
         """
-
+        Returns the set of all coordinates within the Board's boundaries.
         """
         return self._all_spaces
 
     def get_available_spaces(self):
         """
-
+        Returns the set of all available (i.e. unoccupied) Spaces.
         """
         return self._available_spaces
 
     def get_occupied_spaces(self):
         """
-
+        Returns the set of all currently occupied Spaces.
         """
-        return self._all_spaces - self._available_spaces    # set difference of spaces on the board and available spaces = occupied spaces
+        # Set difference of all Spaces on the Board and available Spaces = occupied spaces
+        return self._all_spaces - self._available_spaces
 
     def get_palace_spaces(self):
         """
-
+        Returns the set of all Palace Spaces.
         """
         return self._palace_spaces
 
     def get_palace_diagonals(self):
         """
-
+        Returns the set of all Palace Spaces connected by diagonal pathways.
         """
         return self._palace_diagonals
 
     def get_piece_at_coord(self, coord):
         """
-
+        Returns the instance of the Piece object at the parameterized coordinate.
         """
         x_coord, y_coord = coord
         space = self._spaces[x_coord][y_coord]
@@ -462,34 +520,33 @@ class GameBoard:
 
             for column in range(self._x_length):
 
-                    print(self._spaces[column][row], end=" ")
+                print(self._spaces[column][row], end=" ")
 
             print("")
 
 
 class Space:
     """
-
+    Represents a Space object on the GameBoard. Has a coordinate and occupant Piece as attributes. Also has methods to
+    place a Piece on itself, remove a Piece from itself, and get the Piece currently occupying it.
     """
     def __init__(self, coord):
         """
+        Instantiates an empty Space on the GameBoard at the parameterized coordinate. Has a unique coordinate as well as
+        a Piece currently occupying it (set to None) as initial attributes.
         """
         self._coord = coord
         self._piece = None
-        self._is_occupied = False
 
     def __repr__(self):
-        """
-
-        """
         if self._piece is None:
-            return "Square(" + repr(self._coord) + ", " + repr(self._piece) + ", " + repr(self._is_occupied) + ")"
+            return "Square(" + repr(self._coord) + ", " + repr(self._piece) + ")"
         else:
             return self._piece
 
     def __str__(self):
         """
-
+        String representation of either an empty Space or the Space's occupying Piece when printed on the GameBoard.
         """
         if self._piece is None:
             return " . "
@@ -498,54 +555,38 @@ class Space:
 
     def place_piece(self, piece):
         """
-
+        Takes a parameterized Piece and places it on itself.
         """
         self._piece = piece
-        self._is_occupied = True
 
     def remove_piece(self):
         """
-
+        Clears the Space of any occupying Pieces.
         """
         self._piece = None
-        self._is_occupied = False
 
     def get_piece(self):
         """
-
+        Returns the Piece (or lack thereof) currently occupying the Space.
         """
         return self._piece
-
-    def get_coordinates(self):
-        """
-
-        """
-        return self._coord
-
-    def get_is_occupied(self):
-        """
-
-        """
-        return self._is_occupied
 
 
 class PalaceSpace(Space):
     """
-
+    Represents a PalaceSpace object on the GameBoard defining the Palace areas. Inherits from Space.
     """
 
     def __repr__(self):
-        """
-
-        """
         if self._piece is None:
-            return "PalaceSquare(" + repr(self._coord) + ", " + repr(self._piece) + ", " + repr(self._is_occupied) + ")"
+            return "PalaceSquare(" + repr(self._coord) + ", " + repr(self._piece) + ")"
         else:
             return self._piece
 
     def __str__(self):
         """
-
+        String representation of either an empty PalaceSpace or the PalaceSpace's occupying Piece when printed on the
+        GameBoard.
         """
         if self._piece is None:
             return " * "
@@ -555,16 +596,15 @@ class PalaceSpace(Space):
 
 class BoardPiece:
     """
-    Represents a Piece on the game board. Has a Player object as an attribute, a tuple position, and a set of legal
-    moves. Also has methods to get and set the piece's current position as well as get and set the piece's assigned
-    Player.
+    Represents a generic BoardPiece on the GameBoard. Has a Player object as an attribute, a color corresponding with
+    their Player, a tuple coordinate position, and a set of possible moves relative to its position. Also has methods to
+    set its current position, get its current position, set its Player, and get its Player.
     """
-    pass
-    # TODO
 
     def __init__(self, position):
         """
-
+        Initializes the BoardPiece at the parameterized position. Has a Player object and corresponding color
+        (initialized to None) as well as a position and set of possible moves as initial attributes.
         """
         self._player = None
         self._color = None
@@ -573,50 +613,60 @@ class BoardPiece:
 
     def set_position(self, coord):
         """
-        Sets the Board Piece's position.
+        Takes the parameterized coordinate and uses it to update the Piece's current position.
         """
         self._position = coord
 
     def get_position(self):
         """
-        Returns the Board Piece's location coordinates on the game board.
+        Returns the Piece's current position.
         """
         return self._position
 
     def set_player(self, player):
         """
-        Sets the player that the piece belongs to.
+        Sets the Player that the Piece belongs to along with its corresponding color.
         """
         self._player = player
         self._color = player.get_color()
 
     def get_player(self):
         """
-        Returns the player that the piece belongs to.
+        Returns the Player that the Piece belongs to.
         """
         return self._player
 
 
 class General(BoardPiece):
     """
-    Represents a General. Has methods to get the set of legal moves as well as to change positions. Also has methods to
-    check whether the piece is in check or checkmate. Inherits from BoardPiece.
+    Represents a General-rank BoardPiece. Inherits from BoardPiece. Has an additional boolean attribute for whether the
+    General is in check. Also has methods to set and get whether the General is in check as well as a method to get its
+    set of available moves.
     """
 
     def __init__(self, position):
         """
-
+        Initializes a General with the parameterized position that inherits initial attributes of a generic BoardPiece.
+        Also has a boolean attribute for whether the General is in check.
         """
         super().__init__(position)
         self._is_in_check = False
 
     def __repr__(self):
+        return "General(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
         return self._color[0].upper() + "GN"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the General's position.
         """
+
         self._move_range.clear()
 
         palace_spaces = board.get_palace_spaces()
@@ -624,56 +674,67 @@ class General(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
+        # Defines both orthogonal and diagonal movement when on Palace coordinate connected by diagonal pathways
         if self._position in palace_diagonals:
 
             for x_coord in range(x_pos - 1, x_pos + 2):
                 for y_coord in range(y_pos - 1, y_pos + 2):
+
+                    # If the coordinate is within the Palace and is not occupied by an allied Piece
                     if (x_coord, y_coord) in palace_spaces - allied_spaces:
                         self._move_range.add((x_coord, y_coord))
 
-        # if not on a space connected by a diagonal line, can only move orthogonally
+        # If not on Palace coordinate connected by diagonal pathways, can only move orthogonally
         else:
 
             for x_coord in range(x_pos - 1, x_pos + 2):
+
+                # If the coordinate is within the Palace and is not occupied by an allied Piece
                 if (x_coord, y_pos) in palace_spaces - allied_spaces:
                     self._move_range.add((x_coord, y_pos))
 
             for y_coord in range(y_pos - 1, y_pos + 2):
+
+                # If the coordinate is within the Palace and is not occupied by an allied Piece
                 if (x_pos, y_coord) in palace_spaces - allied_spaces:
                     self._move_range.add((x_pos, y_coord))
 
         return self._move_range
 
-    def set_is_in_check(self, bool):
+    def set_is_in_check(self, bool_val):
         """
-
+        Takes a parameterized boolean value and uses it to set whether the General is in check.
         """
-        self._is_in_check = bool
+        self._is_in_check = bool_val
 
     def get_is_in_check(self):
         """
-
+        Returns whether the General is in check.
         """
         return self._is_in_check
-
-    def is_in_checkmate(self):
-        """
-        """
-        pass
 
 
 class Guard(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents a Guard-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of available
+    moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "GD"
+        return "Guard(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "GD"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Guard's position.
         """
+
         self._move_range.clear()
 
         palace_spaces = board.get_palace_spaces()
@@ -681,21 +742,26 @@ class Guard(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
+        # Defines both orthogonal and diagonal movement when on Palace coordinate connected by diagonal pathways
         if self._position in palace_diagonals:
-
             for x_coord in range(x_pos - 1, x_pos + 2):
                 for y_coord in range(y_pos - 1, y_pos + 2):
+
+                    # If the coordinate is within the Palace and is not occupied by an allied Piece
                     if (x_coord, y_coord) in palace_spaces - allied_spaces:
                         self._move_range.add((x_coord, y_coord))
 
-        # if not on a space connected by a diagonal line, can only move orthogonally
+        # If not on Palace coordinate connected by diagonal pathways, can only move orthogonally
         else:
-
             for x_coord in range(x_pos - 1, x_pos + 2):
+
+                # If the coordinate is within the Palace and is not occupied by an allied Piece
                 if (x_coord, y_pos) in palace_spaces - allied_spaces:
                     self._move_range.add((x_coord, y_pos))
 
             for y_coord in range(y_pos - 1, y_pos + 2):
+
+                # If the coordinate is within the Palace and is not occupied by an allied Piece
                 if (x_pos, y_coord) in palace_spaces - allied_spaces:
                     self._move_range.add((x_pos, y_coord))
 
@@ -704,47 +770,58 @@ class Guard(BoardPiece):
 
 class Horse(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents a Horse-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of available
+    moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "HS"
+        return "Horse(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "HS"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Horse's position.
         """
+
         self._move_range.clear()
 
         all_spaces = board.get_all_spaces()
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
-        # check spaces horizontally
+        # Evaluates available spaces if Horse moves due west or due east from its current position. Horse moves one
+        # space forward then one space diagonally outward. Stops if there is an obstruction in the path.
         for x_coord in range(x_pos - 1, x_pos + 2, 2):
             if (x_coord, y_pos) in all_spaces and board.get_piece_at_coord((x_coord, y_pos)) is None:
                 for y_coord in range(y_pos - 1, y_pos + 2, 2):
 
-                    x_offset = 0
                     if x_coord < x_pos:
-                        x_offset -= 1
-                    elif x_coord > x_pos:
-                        x_offset += 1
+                        x_offset = -1
+                    else:
+                        x_offset = 1
 
+                    # If the coordinate is within the Board's boundaries and is not occupied by an allied Piece
                     if (x_coord + x_offset, y_coord) in all_spaces - allied_spaces:
                         self._move_range.add((x_coord + x_offset, y_coord))
 
-        # check spaces vertically
+        # Evaluates available spaces if Horse moves due north or due south from its current position. Horse moves one
+        # space forward then one space diagonally outward. Stops if there is an obstruction in the path.
         for y_coord in range(y_pos - 1, y_pos + 2, 2):
             if (x_pos, y_coord) in all_spaces and board.get_piece_at_coord((x_pos, y_coord)) is None:
                 for x_coord in range(x_pos - 1, x_pos + 2, 2):
 
-                    y_offset = 0
                     if y_coord < y_pos:
-                        y_offset -= 1
-                    elif y_coord > y_pos:
-                        y_offset += 1
+                        y_offset = -1
+                    else:
+                        y_offset = 1
 
+                    # If the coordinate is within the Board's boundaries and is not occupied by an allied Piece
                     if (x_coord, y_coord + y_offset) in all_spaces - allied_spaces:
                         self._move_range.add((x_coord, y_coord + y_offset))
 
@@ -753,70 +830,81 @@ class Horse(BoardPiece):
 
 class Elephant(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents an Elephant-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of
+    available moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "EP"
+        return "Elephant(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "EP"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Elephant's position.
         """
+
         self._move_range.clear()
 
         all_spaces = board.get_all_spaces()
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
-        # check spaces horizontally
+        # Evaluates available spaces if Elephant moves due west or due east from its current position. Elephant moves
+        # one space forward then two spaces diagonally outward. Stops if there is an obstruction in the path.
         for x_coord in range(x_pos - 1, x_pos + 2, 2):
 
             if (x_coord, y_pos) in all_spaces and board.get_piece_at_coord((x_coord, y_pos)) is None:
                 for y_coord in range(y_pos - 1, y_pos + 2, 2):
 
-                    x_offset = 0
                     if x_coord < x_pos:
-                        x_offset -= 1
+                        x_offset = -1
 
                     else:
-                        x_offset += 1
+                        x_offset = 1
 
-                    if (x_coord + x_offset, y_coord) in all_spaces and board.get_piece_at_coord((x_coord + x_offset, y_coord)) is None:
+                    if (x_coord + x_offset, y_coord) in all_spaces and \
+                            board.get_piece_at_coord((x_coord + x_offset, y_coord)) is None:
                         for y_coord in range(y_pos - 2, y_pos + 3, 4):
 
-                            x_offset = 0
                             if x_coord < x_pos:
-                                x_offset -= 2
+                                x_offset = -2
 
                             else:
-                                x_offset += 2
+                                x_offset = 2
 
+                            # If the coordinate is within the Board's boundaries and is not occupied by an allied Piece
                             if (x_coord + x_offset, y_coord) in all_spaces - allied_spaces:
                                 self._move_range.add((x_coord + x_offset, y_coord))
 
-        # check spaces vertically
+        # Evaluates available spaces if Elephant moves due north or due south from its current position. Elephant moves
+        # one space forward then two spaces diagonally outward. Stops if there is an obstruction in the path.
         for y_coord in range(y_pos - 1, y_pos + 2, 2):
             if (x_pos, y_coord) in all_spaces and board.get_piece_at_coord((x_pos, y_coord)) is None:
                 for x_coord in range(x_pos - 1, x_pos + 2, 2):
 
-                    y_offset = 0
                     if y_coord < y_pos:
-                        y_offset -= 1
+                        y_offset = -1
 
                     else:
-                        y_offset += 1
+                        y_offset = 1
 
-                    if (x_coord, y_coord + y_offset) in all_spaces and board.get_piece_at_coord((x_coord, y_coord + y_offset)) is None:
+                    if (x_coord, y_coord + y_offset) in all_spaces and \
+                            board.get_piece_at_coord((x_coord, y_coord + y_offset)) is None:
                         for x_coord in range(x_pos - 2, x_pos + 3, 4):
 
-                            y_offset = 0
                             if y_coord < y_pos:
-                                y_offset -= 2
+                                y_offset = -2
 
                             else:
-                                y_offset += 2
+                                y_offset = 2
 
+                            # If the coordinate is within the Board's boundaries and is not occupied by an allied Piece
                             if (x_coord, y_coord + y_offset) in all_spaces - allied_spaces:
                                 self._move_range.add((x_coord, y_coord + y_offset))
 
@@ -825,16 +913,25 @@ class Elephant(BoardPiece):
 
 class Chariot(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents a Chariot-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of available
+    moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "CH"
+        return "Chariot(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "CH"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Chariot's position.
         """
+
         self._move_range.clear()
 
         all_spaces = board.get_all_spaces()
@@ -842,80 +939,101 @@ class Chariot(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
+        # Chariot can move any number of spaces orthogonally until it reaches an obstruction
 
-        # check left
+        # Check Spaces due west
         x_offset = -1
         while (x_pos + x_offset, y_pos) in all_spaces:
             piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
             if piece is not None:
+
+                # If the obstructing Piece is not an ally, adds it to the set of available moves
                 if (x_pos + x_offset, y_pos) not in allied_spaces:
                     self._move_range.add((x_pos + x_offset, y_pos))
                 break
+
+            # Adds the empty Space to the list set of available moves
             self._move_range.add((x_pos + x_offset, y_pos))
             x_offset -= 1
 
-        # check right
+        # Check Spaces due east
         x_offset = 1
         while (x_pos + x_offset, y_pos) in all_spaces:
             piece = board.get_piece_at_coord((x_pos + x_offset, y_pos))
             if piece is not None:
+
+                # If the obstructing Piece is not an ally, adds it to the set of available moves
                 if (x_pos + x_offset, y_pos) not in allied_spaces:
                     self._move_range.add((x_pos + x_offset, y_pos))
                 break
+
+            # Adds the empty Space to the list set of available moves
             self._move_range.add((x_pos + x_offset, y_pos))
             x_offset += 1
 
-        # check up
+        # Check Spaces due north
         y_offset = -1
         while (x_pos, y_pos + y_offset) in all_spaces:
             piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
             if piece is not None:
+
+                # If the obstructing Piece is not an ally, adds it to the set of available moves
                 if (x_pos, y_pos + y_offset) not in allied_spaces:
                     self._move_range.add((x_pos, y_pos + y_offset))
                 break
+
+            # Adds the empty Space to the list set of available moves
             self._move_range.add((x_pos, y_pos + y_offset))
             y_offset -= 1
 
-        # check down
+        # Check Spaces due south
         y_offset = 1
         while (x_pos, y_pos + y_offset) in all_spaces:
             piece = board.get_piece_at_coord((x_pos, y_pos + y_offset))
             if piece is not None:
+
+                # If the obstructing Piece is not an ally, adds it to the set of available moves
                 if (x_pos, y_pos + y_offset) not in allied_spaces:
                     self._move_range.add((x_pos, y_pos + y_offset))
                 break
+
+            # Adds the empty Space to the list set of available moves
             self._move_range.add((x_pos, y_pos + y_offset))
             y_offset += 1
 
-        # check diagonal movement within palaces
+        # Palace-augmented movement when Chariot is on Palace Space connected by diagonal pathways
         if self._position in palace_diagonals:
 
-            # Piece is in center of palace
-            if x_pos == 4:  # piece is in palace center
+            # Piece is in center of Palace
+            if x_pos == 4:
                 for x_coord in range(x_pos - 1, x_pos + 2):
                     for y_coord in range(y_pos - 1, y_pos + 2):
                         if abs(x_coord - x_pos) == abs(y_coord - y_pos):
 
                             piece = board.get_piece_at_coord((x_coord, y_coord))
 
+                            # If the corners of the Palace are empty or are not occupied by allies, add them to the
+                            # set of available moves
                             if piece is None or (x_coord, y_coord) not in allied_spaces:
                                 self._move_range.add((x_coord, y_coord))
 
-            # Piece is in corner of palace
+            # Piece is in corner of Palace
             else:
-                palace_center = None
 
-                # Find palace center relative to position
+                palace_center = None
+                # Find Palace center relative to position
                 for x_coord in range(x_pos - 1, x_pos + 2):
                     for y_coord in range(y_pos - 1, y_pos + 2):
 
-                        # palace center found
+                        # Palace center found
                         if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals and \
                                 (x_coord, y_coord) != self._position:
 
                             palace_center = (x_coord, y_coord)
                             break
 
+                # Determine whether to iterate spaces northwest, southwest, northeast, southeast of current position
+                # based on Palace center's direction relative to position.
                 if palace_center[0] < x_pos:
                     x_offset = -1
                 else:
@@ -931,27 +1049,41 @@ class Chariot(BoardPiece):
                     piece = board.get_piece_at_coord((x_pos + x_offset, y_pos + y_offset))
 
                     if piece is not None:
+
+                        # If the obstructing Piece is not an ally, adds it to the set of available moves
                         if (x_pos + x_offset, y_pos + y_offset) not in allied_spaces:
                             self._move_range.add((x_pos + x_offset, y_pos + y_offset))
                         break
+
+                    # Adds the empty Space to the list set of available moves
                     self._move_range.add((x_pos + x_offset, y_pos + y_offset))
                     x_offset += x_offset
                     y_offset += y_offset
 
         return self._move_range
 
+
 class Cannon(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents a Cannon-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of available
+    moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "CN"
+        return "Cannon(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "CN"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Cannon's position.
         """
+
         self._move_range.clear()
 
         all_spaces = board.get_all_spaces()
@@ -959,7 +1091,10 @@ class Cannon(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
-        # check left
+        # Chariot can move any number of spaces orthogonally provided there is exactly one non-Cannon Piece between
+        # itself and its destination. It may not jump over nor capture other Cannons.
+
+        # Check Spaces due west
         x_offset = -1
         pieces_between = 0
         while (x_pos + x_offset, y_pos) in all_spaces:
@@ -968,17 +1103,23 @@ class Cannon(BoardPiece):
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos + x_offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
+
+                    # If the obstruction is neither an allied Piece nor a Cannon, add the Space to the set of available
+                    # moves
+                    if (x_pos + x_offset, y_pos) not in allied_spaces and isinstance(piece, Cannon) is False:
                         self._move_range.add((x_pos + x_offset, y_pos))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
+
+                    # If the Space is unoccupied and there is one Piece between the Cannon and destination, add the
+                    # Space to the set of available moves
                     self._move_range.add((x_pos + x_offset, y_pos))
             x_offset -= 1
 
-        # check right
+        # Check Spaces due east
         x_offset = 1
         pieces_between = 0
         while (x_pos + x_offset, y_pos) in all_spaces:
@@ -987,17 +1128,23 @@ class Cannon(BoardPiece):
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos + x_offset, y_pos)) not in allied_spaces and isinstance(piece, Cannon) is False:
+
+                    # If the obstruction is neither an allied Piece nor a Cannon, add the Space to the set of available
+                    # moves
+                    if (x_pos + x_offset, y_pos) not in allied_spaces and isinstance(piece, Cannon) is False:
                         self._move_range.add((x_pos + x_offset, y_pos))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
+
+                    # If the Space is unoccupied and there is one Piece between the Cannon and destination, add the
+                    # Space to the set of available moves
                     self._move_range.add((x_pos + x_offset, y_pos))
             x_offset += 1
 
-        # check up
+        # Check Spaces due north
         y_offset = -1
         pieces_between = 0
         while (x_pos, y_pos + y_offset) in all_spaces:
@@ -1006,17 +1153,23 @@ class Cannon(BoardPiece):
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos, y_pos + y_offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
+
+                    # If the obstruction is neither an allied Piece nor a Cannon, add the Space to the set of available
+                    # moves
+                    if (x_pos, y_pos + y_offset) not in allied_spaces and isinstance(piece, Cannon) is False:
                         self._move_range.add((x_pos, y_pos + y_offset))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
+
+                    # If the Space is unoccupied and there is one Piece between the Cannon and destination, add the
+                    # Space to the set of available moves
                     self._move_range.add((x_pos, y_pos + y_offset))
             y_offset -= 1
 
-        # check down
+        # Check Spaces due south
         y_offset = 1
         pieces_between = 0
         while (x_pos, y_pos + y_offset) in all_spaces:
@@ -1025,27 +1178,33 @@ class Cannon(BoardPiece):
 
             if piece is not None:
                 if pieces_between == 1 or isinstance(piece, Cannon):
-                    if ((x_pos, y_pos + y_offset)) not in allied_spaces and isinstance(piece, Cannon) is False:
+
+                    # If the obstruction is neither an allied Piece nor a Cannon, add the Space to the set of available
+                    # moves
+                    if (x_pos, y_pos + y_offset) not in allied_spaces and isinstance(piece, Cannon) is False:
                         self._move_range.add((x_pos, y_pos + y_offset))
                     break
                 pieces_between += 1
 
             else:
                 if pieces_between == 1:
+
+                    # If the Space is unoccupied and there is one Piece between the Cannon and destination, add the
+                    # Space to the set of available moves
                     self._move_range.add((x_pos, y_pos + y_offset))
             y_offset += 1
 
-        # check diagonal movement within palaces
-        # diagonal movement is only permitted if center of palace is occupied
+        # Palace-augmented diagonal movement when Cannon is in Palace (can only happen when Cannon is on a Palace
+        # corner)
         if self._position in palace_diagonals:
 
             palace_center = None
 
-            # Find palace center relative to position
+            # Find Palace center relative to current position
             for x_coord in range(x_pos - 1, x_pos + 2):
                 for y_coord in range(y_pos - 1, y_pos + 2):
 
-                    # palace center found
+                    # Palace center found
                     if abs(x_coord - x_pos) == abs(y_coord - y_pos) and (x_coord, y_coord) in palace_diagonals and \
                             (x_coord, y_coord) != self._position:
                         palace_center = (x_coord, y_coord)
@@ -1053,9 +1212,11 @@ class Cannon(BoardPiece):
 
             piece_at_center = board.get_piece_at_coord(palace_center)
 
-            # Cannon can only jump diagonally within palace if center space is occupied by a non-Cannon piece
+            # Cannon can only jump diagonally within Palace if center space is occupied by a non-Cannon Piece
             if piece_at_center is not None and isinstance(piece_at_center, Cannon) is False:
 
+                # Find Palace corner diagonally from current position based on Palace center's position relative to
+                # the current position
                 if palace_center[0] < x_pos:
                     x_offset = -2
                 else:
@@ -1066,9 +1227,9 @@ class Cannon(BoardPiece):
                 else:
                     y_offset = 2
 
-                piece_at_destination = board.get_piece_at_coord((x_pos + x_offset, y_pos + y_offset))
-
-                if piece_at_destination is None or (piece_at_destination is not None and (x_pos + x_offset, y_pos + y_offset) not in allied_spaces):
+                # If the corner destination is not occupied by an allied Piece, add the destination to the set of
+                # available moves
+                if (x_pos + x_offset, y_pos + y_offset) not in allied_spaces:
                     self._move_range.add((x_pos + x_offset, y_pos + y_offset))
 
         return self._move_range
@@ -1076,16 +1237,25 @@ class Cannon(BoardPiece):
 
 class Soldier(BoardPiece):
     """
-    Has methods to get the set of legal moves as well as to change positions. Inherits from BoardPiece.
+    Represents a Soldier-rank BoardPiece. Inherits from BoardPiece. Has an additional method to get its set of available
+    moves.
     """
 
     def __repr__(self):
-        return self._color.upper()[0] + "SD"
+        return "Soldier(" + repr(self._color) + ", " + repr(self._position) + ")"
+
+    def __str__(self):
+        """
+        String representation of the General when printed on the GameBoard.
+        """
+        return self._color[0].upper() + "SD"
 
     def get_move_range(self, board):
         """
-
+        Takes the parameterized GameBoard, then generates and returns the set of all possible moves currently available
+        relative to the Soldier's position.
         """
+
         self._move_range.clear()
 
         all_spaces = board.get_all_spaces()
@@ -1093,24 +1263,35 @@ class Soldier(BoardPiece):
         allied_spaces = self._player.get_occupied_spaces()
         x_pos, y_pos = self._position
 
-        y_offset = None
+        # Soldier may only move one space horizontally or forward to the opponent's side of the Board. May move along
+        # diagonal pathways within Palaces as well
 
+        # Set forward movement based on color
         if self._color == "blue":
             y_offset = -1
 
-        elif self._color == "red":
+        else:
             y_offset = 1
 
+        # Check horizontal movement
         for x_coord in range(x_pos - 1, x_pos + 2):
+
+            # If the coordinate is within the boundaries of the Board and is not occupied by an allied Piece, add it
+            # to the set of available moves
             if (x_coord, y_pos) in all_spaces - allied_spaces:
                 self._move_range.add((x_coord, y_pos))
 
+        # Check forward movement. If the coordinate is within the boundaries of the Board and is not occupied by an
+        # allied Piece, add it to the set of available moves
         if (x_pos, y_pos + y_offset) in all_spaces - allied_spaces:
             self._move_range.add((x_pos, y_pos + y_offset))
 
-        # Diagonal movement augmentation in palace
+        # Diagonal movement augmentation within Palace
         if self._position in palace_diagonals:
             for x_coord in range(x_pos - 1, x_pos + 2):
+
+                # If the coordinate is on a Palace Space connected by diagonal pathways and is not occupied by an
+                # allied piece, add it to the set of available moves
                 if (x_coord, y_pos + y_offset) in palace_diagonals - allied_spaces:
                     self._move_range.add((x_coord, y_pos + y_offset))
 
