@@ -11,8 +11,8 @@ class JanggiGame:
     game has a 9 x 10 GameBoard, a set of board Spaces, a game state, a dictionary of players, a dictionary to convert
     algebraic notation to standard coordinates, and a turn counter to keep track of the turn order. Has methods to
     get the current game state, get whether a certain Player is in check, make a move, update the GameBoard, verify
-    whether a move leaves a Player in check, verify checkmate, convert algebraic notation to tuple coordinates, and
-    print the GameBoard.
+    whether a move leaves a Player in check, verify checkmate, convert algebraic notation to tuple coordinates, get the
+    GameBoard, get the Player dictionary, and print the GameBoard.
     """
 
     def __init__(self):
@@ -44,7 +44,7 @@ class JanggiGame:
         for num in range(1, 11):
             self._algebraic_notation[str(num)] = num - 1
 
-        self.print_board()
+        # self.print_board()
 
     def __repr__(self):
         return "JanggiGame(" + repr(self._game_state) + ", " + repr(self._turn_counter) + ")"
@@ -137,7 +137,7 @@ class JanggiGame:
 
         self._turn_counter += 1
 
-        self.print_board()
+        # self.print_board()
 
         return True
 
