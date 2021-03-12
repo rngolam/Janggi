@@ -105,7 +105,7 @@ class JanggiGame:
 
             else:
                 self._turn_counter += 1
-                self.print_board()
+                # self.print_board()
                 return True
 
         # Player attempts to move outside of a Piece's range
