@@ -44,7 +44,7 @@ class JanggiGame:
         for num in range(1, 11):
             self._algebraic_notation[str(num)] = num - 1
 
-        # self.print_board()
+        self.print_board()
 
     def __repr__(self):
         return "JanggiGame(" + repr(self._game_state) + ", " + repr(self._turn_counter) + ")"
@@ -105,7 +105,7 @@ class JanggiGame:
 
             else:
                 self._turn_counter += 1
-                # self.print_board()
+                self.print_board()
                 return True
 
         # Player attempts to move outside of a Piece's range
@@ -137,7 +137,7 @@ class JanggiGame:
 
         self._turn_counter += 1
 
-        # self.print_board()
+        self.print_board()
 
         return True
 
@@ -549,7 +549,7 @@ class Space:
         String representation of either an empty Space or the Space's occupying Piece when printed on the GameBoard.
         """
         if self._piece is None:
-            return " . "
+            return " · "
         else:
             return str(self._piece)
 
@@ -1227,9 +1227,10 @@ class Cannon(BoardPiece):
                 else:
                     y_offset = 2
 
-                # If the corner destination is not occupied by an allied Piece, add the destination to the set of
-                # available moves
-                if (x_pos + x_offset, y_pos + y_offset) not in allied_spaces:
+                # If the corner destination is not occupied by a Cannon or allied Piece, add the destination to the set
+                # of available moves
+                if isinstance(board.get_piece_at_coord((x_pos + x_offset, y_pos + y_offset)), Cannon) is False and \
+                        (x_pos + x_offset, y_pos + y_offset) not in allied_spaces:
                     self._move_range.add((x_pos + x_offset, y_pos + y_offset))
 
         return self._move_range
