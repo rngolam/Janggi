@@ -1,42 +1,97 @@
 # Janggi
 
-**Remember that this project cannot be submitted late.**
+**Janggi** is a Korean strategy board game that is derived from and bears similarities to xiangqi (Chinese chess). This program allows users to play an abstract backend version of Janggi in a console.
 
-Write a class named JanggiGame for playing an abstract board game called Janggi. Please read the "Board", "Pieces" and the overall "Rules" section on [the Wikipedia page](https://en.wikipedia.org/wiki/Janggi).  You do _not_ have to implement the rules regarding perpetual check, position repetition, any kind of draw or the miscellaneous rules. You **do** need to correctly handle checkmate. You also need to correctly handle all piece-specific rules, e.g. generals aren't allowed to leave the palace, horses and elephants can be blocked, cannons cannot capture other cannons, etc. A good video describing the rules is [here](https://www.youtube.com/watch?v=X5IJaPoQ0oQ).
+The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). Note that this version of the game begins with the positions Elephant and Horse pieces transposed on the right side. The game also does not end in a draw if the two player's General pieces face each other from across the board.
 
-A general is in check if it could be captured on the opposing player's next move. A player cannot make a move that puts or leaves their general in check. The game ends when one player **checkmates** the other's general.  You don't actually capture a general, instead you have to put it in such a position that it cannot escape being in check, meaning that no matter what, it could be captured on the next move.  This works the same as in chess, if you're familiar with that game.
+**Instructions**
 
-Unlike chess, Janggi allows you to pass a turn and thus there is no stalemate (a scenario when no legal moves can be made).
+* Begin a new game by instantiating a new game object (e.g. `game = JanggiGame()`).
+* The Blue player moves first. Moves are made by calling `make_move` on the game with two string parameters in algebraic notation, with columns labeled a-i and rows labeled 1-10, with row 1 being the Red side and row 10 the Blue side (e.g. `game.make_move('a7','b7')`)
+  * `make_move` will return `False` if a move is attempted on a finished game, if a board piece is not selected, if a player attempts to move when it is not their turn, if an invalid move is made, if a player makes a move that places their own General in check, or if a player fails to counter a check. Otherwise, the game board will be updated and this method will return `'True'`.
+  * Unlike chess, players can choose to pass their turn in Janggi. This is performed by selecting a coordinate currently occupied by one of their pieces and passing it as both a start and end location to `make_move` (e.g. `game.make_move('a1,a1')`).
+* To verify whether a player's General is in check, call `is_in_check` with the parameterized player color as a string (e.g. `game.is_in_check('blue')`).
+* To check the current game state, call `get_game_state`, which will return `'UNFINISHED'`, `'BLUE_WON'`, or '`RED_WON'`.
+* The game ends when one player places their opponent's General in checkmate, leaving the opponent with no valid moves to counter the check.
 
-Your program should have Blue and Red as the competing players and Blue as the starting player. You do not need to implement any special mechanism for figuring out who can start the game. 
+**Abbreviations**
+* GN = General
+* GD = Guard
+* HS = Horse
+* EP = Elephant
+* CH = Chariot
+* CN = Cannon
+* SD = Soldier
 
-Locations on the board will be specified using "algebraic notation", with columns labeled a-i and rows labeled 1-10, with row 1 being the Red side and row 10 the Blue side. Your initial board setup should have the Elephant transposed with the Horse, on the right side, as seen on the image from Wikipedia. You can use [this spreadsheet](https://docs.google.com/spreadsheets/d/1Lfl4IaSGqQaBYZmoD2wOrTVkXS2E7BP9v6N4p5sDPgM/edit?usp=sharing) as a reference to understand the initial board layout as well as to simulate your moves.
-
-You're not required to print the board, but you will probably find it very useful for testing purposes.
-
-Your JanggiGame class **must** include the following:
-* An `init` method that initializes any data members.
-* A method called `get_game_state` that just returns one of these values, depending on the game state: 'UNFINISHED' or 'RED_WON' or 'BLUE_WON'.
-* A method called `is_in_check` that takes as a parameter either 'red' or 'blue' and returns True if that player is in check, but returns False otherwise.
-* A method called `make_move` that takes two parameters - strings that represent the square to move from and the square to move to.  For example, `make_move('b3', 'b10')`.  If the square being moved from does not contain a piece belonging to the player whose turn it is, or if the indicated move is not legal, or if the game has already been won, then it should just return False.  Otherwise it should make the indicated move, remove any captured piece, update the game state if necessary, update whose turn it is, and return True.
-
-If the `make_move` method is passed the same string for the square moved from and to, it should be processed as the player passing their turn, and return True.
-
-Feel free to add whatever other classes, methods, or data members you want.  All data members must be private.  Every class should have an init method that initializes all of the data members for that class.
-
-Here's a very simple example of how the class could be used:
+**Example Usage**
 ```
 game = JanggiGame()
-move_result = game.make_move('c1', 'e3') #should be False because it's not Red's turn
-move_result = game.make_move('a7,'b7') #should return True
-blue_in_check = game.is_in_check('blue') #should return False
-game.make_move('a4', 'a5') #should return True
-state = game.get_game_state() #should return UNFINISHED
-game.make_move('b7','b6') #should return True
-game.make_move('b3','b6') #should return False because it's an invalid move
-game.make_move('a1','a4') #should return True
-game.make_move('c7','d7') #should return True
-game.make_move('a4','a4') #this will pass the Red's turn and return True
+move_result = game.make_move('c1', 'e3') # should return False because it's not Red's turn
+move_result = game.make_move('a7,'b7') # should return True
+blue_in_check = game.is_in_check('blue') # should return False
+game.make_move('a4', 'a5') # should return True
+state = game.get_game_state() # should return UNFINISHED
+game.make_move('b7','b6') # should return True
+game.make_move('b3','b6') # should return False because it's an invalid move
+game.make_move('a1','a4') # should return True
+game.make_move('c7','d7') # should return True
+game.make_move('a4','a4') # this will pass the Red player's turn and return True
 ```
 
-The file must be named: **JanggiGame.py** and it should not contain any test code outside the main() function. Your code for this project should **not** be made public, in any manner, until after the term has ended.
+**Initial Board Setup**
+![image](https://user-images.githubusercontent.com/69094063/111963696-cdbd7980-8ac1-11eb-8e2e-6b1cce4c3ff4.png)
+
+**Example Game Played Out**
+```
+game = JanggiGame()
+game.make_move('e7', 'e6')
+game.make_move('e2', 'e2')
+game.make_move('e6', 'e5')
+game.make_move('e2', 'e2')
+game.make_move('e5', 'e4')
+game.make_move('e2', 'e2')
+game.make_move('e4', 'd4')
+game.make_move('e2', 'e2')
+game.make_move('d4', 'c4')
+game.make_move('e2', 'e2')
+game.make_move('a10', 'a9')
+game.make_move('e2', 'e2')
+game.make_move('a9', 'd9')
+game.make_move('e2', 'e2')
+game.make_move('d9', 'd8')
+game.make_move('i1', 'i2')
+game.make_move('e9', 'e9')
+game.make_move('i2', 'g2')
+game.make_move('e9', 'e9')
+game.make_move('i4', 'h4')
+game.make_move('e9', 'e9')
+game.make_move('h3', 'h5')
+game.make_move('i10', 'i9')
+game.make_move('e2', 'e2')
+game.make_move('i9', 'g9')
+game.make_move('e2', 'e2')
+game.make_move('g9', 'g8')
+game.make_move('e2', 'e2')
+game.make_move('h8', 'f8')
+game.make_move('f1', 'e1')
+game.make_move('g7', 'f7')
+game.make_move('g4', 'f4')
+game.make_move('e9', 'e9')
+game.make_move('f4', 'e4')
+
+# Check
+game.make_move('b8', 'e8')
+game.make_move('e4', 'f4')
+game.make_move('e9', 'e9')
+game.make_move('f4', 'g4')
+game.make_move('c7', 'd7')
+game.make_move('e2', 'e2')
+
+# Checkmate
+game.make_move('d7', 'e7')
+```
+
+**Example Game Played Out**
+![image](https://user-images.githubusercontent.com/69094063/111964193-59370a80-8ac2-11eb-9153-a319d56aa6c3.png)
+
+As seen above, the Red player's General is currently threatened by one of the Blue player's Cannons. The Blue player's two Cannons at e8 and f8, as well as their Chariot at d8, are capable of attacking every square in the Red player's palace. Because the Red player is incapable of moving their General to safety, blocking these attack paths, or capturing Blue's pieces in question, the game is over.
