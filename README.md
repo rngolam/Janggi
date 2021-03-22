@@ -2,7 +2,7 @@
 
 **Janggi** is a Korean strategy board game that is derived from and bears similarities to xiangqi (Chinese chess). This program allows users to play an abstract backend version of Janggi in a Python console.
 
-The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). Note that this version of the game begins with the positions Elephant and Horse pieces transposed on the right side. The game also does not end in a draw if the two player's General pieces face each other from across the board.
+The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). Note that this version of the game begins with the positions of the Elephant and Horse pieces transposed on the right side. The game also does not end in a draw if the two player's General pieces face each other from across the board.
 
 **Instructions**
 
