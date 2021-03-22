@@ -39,6 +39,7 @@ game.make_move('a4','a4') # this will pass the Red player's turn and return True
 ```
 
 **Initial Board Setup**
+
 ![image](https://user-images.githubusercontent.com/69094063/111963696-cdbd7980-8ac1-11eb-8e2e-6b1cce4c3ff4.png)
 
 **Example Game Played Out**
