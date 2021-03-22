@@ -15,6 +15,8 @@ The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). No
 * The game ends when one player places their opponent's General in checkmate, leaving the opponent with no valid moves to counter the check.
 
 **Abbreviations**
+* B = Blue
+* R = Red
 * GN = General
 * GD = Guard
 * HS = Horse
