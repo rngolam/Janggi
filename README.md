@@ -1,4 +1,4 @@
-# portfolio-project
+# Janggi
 
 **Remember that this project cannot be submitted late.**
 
