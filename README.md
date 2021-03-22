@@ -93,4 +93,4 @@ game.make_move('d7', 'e7')
 ```
 ![image](https://user-images.githubusercontent.com/69094063/111964193-59370a80-8ac2-11eb-9153-a319d56aa6c3.png)
 
-As seen above, the Red player's General is currently threatened by one of the Blue player's Cannons. The Blue player's two Cannons at e8 and f8, as well as their Chariot at d8, are capable of attacking every square in the Red player's palace. Because the Red player is incapable of moving their General to safety, blocking these attack paths, or capturing Blue's pieces in question, the game is over.
+As seen above, the Red player's General is currently threatened by one of the Blue player's Cannons. The Blue player's two Cannons at e8 and f8, as well as their Chariot at d8, are capable of attacking every available square in the Red player's palace. Because the Red player is incapable of moving their General to safety, blocking these attack paths, or capturing Blue's pieces in question, the game is over.
