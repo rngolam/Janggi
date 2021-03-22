@@ -549,7 +549,7 @@ class Space:
         String representation of either an empty Space or the Space's occupying Piece when printed on the GameBoard.
         """
         if self._piece is None:
-            return " · "
+            return " . "
         else:
             return str(self._piece)
 
