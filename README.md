@@ -8,7 +8,7 @@ The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). No
 
 * Begin a new game by instantiating a new game object (e.g. `game = JanggiGame()`).
 * The Blue player moves first. Moves are made by calling `make_move` on the game with two string parameters in algebraic notation, with columns labeled a-i and rows labeled 1-10, with row 1 being the Red side and row 10 the Blue side (e.g. `game.make_move('a7','b7')`)
-  * `make_move` will return `False` if a move is attempted on a finished game, if a board piece is not selected, if a player attempts to move when it is not their turn, if an invalid move is made, if a player makes a move that places their own General in check, or if a player fails to counter a check. Otherwise, the game board will be updated and this method will return `'True'`.
+  * `make_move` will return `False` if a move is attempted on a finished game, if a board piece is not selected, if a player attempts to move when it is not their turn, if an invalid move is made, if a player makes a move that places their own General in check, or if a player fails to counter a check. Otherwise, the game board will be updated and this method will return `True`.
   * Unlike chess, players can choose to pass their turn in Janggi. This is performed by selecting a coordinate currently occupied by one of their pieces and passing it as both a start and end location to `make_move` (e.g. `game.make_move('a1,a1')`).
 * To verify whether a player's General is in check, call `is_in_check` with the parameterized player color as a string (e.g. `game.is_in_check('blue')`).
 * To check the current game state, call `get_game_state`, which will return `'UNFINISHED'`, `'BLUE_WON'`, or '`RED_WON'`.
