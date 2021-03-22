@@ -40,7 +40,7 @@ game.make_move('a4','a4') # this will pass the Red player's turn and return True
 
 **Initial Board Setup**
 
-![image](https://user-images.githubusercontent.com/69094063/111963696-cdbd7980-8ac1-11eb-8e2e-6b1cce4c3ff4.png)
+![image](https://user-images.githubusercontent.com/69094063/111979348-f7cb6780-8ad2-11eb-95f9-86c099d93414.png)
 
 **Example Game Played Out**
 ```
@@ -91,6 +91,6 @@ game.make_move('e2', 'e2')
 # Checkmate
 game.make_move('d7', 'e7')
 ```
-![image](https://user-images.githubusercontent.com/69094063/111964193-59370a80-8ac2-11eb-9153-a319d56aa6c3.png)
+![image](https://user-images.githubusercontent.com/69094063/111979525-2cd7ba00-8ad3-11eb-8cba-565351fcfe73.png)
 
 As seen above, the Red player's General is currently threatened by one of the Blue player's Cannons. The Blue player's two Cannons at e8 and f8, as well as their Chariot at d8, are capable of attacking every available square in the Red player's palace. Because the Red player is incapable of moving their General to safety, blocking these attack paths, or capturing Blue's pieces in question, the game is over.
