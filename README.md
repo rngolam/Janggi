@@ -14,7 +14,6 @@ The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). No
 * To check the current game state, call `get_game_state`, which will return `'UNFINISHED'`, `'BLUE_WON'`, or '`RED_WON'`.
 * The game ends when one player places their opponent's General in checkmate, leaving the opponent with no valid moves to counter the check.
 
-
 **Abbreviations**
 * GN = General
 * GD = Guard
@@ -23,7 +22,6 @@ The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). No
 * CH = Chariot
 * CN = Cannon
 * SD = Soldier
-
 
 **Example Usage**
 ```
@@ -40,11 +38,9 @@ game.make_move('c7','d7') # should return True
 game.make_move('a4','a4') # this will pass the Red player's turn and return True
 ```
 
-
 **Initial Board Setup**
 
 ![image](https://user-images.githubusercontent.com/69094063/111963696-cdbd7980-8ac1-11eb-8e2e-6b1cce4c3ff4.png)
-
 
 **Example Game Played Out**
 ```
@@ -95,6 +91,6 @@ game.make_move('e2', 'e2')
 # Checkmate
 game.make_move('d7', 'e7')
 ```
-
 ![image](https://user-images.githubusercontent.com/69094063/111964193-59370a80-8ac2-11eb-9153-a319d56aa6c3.png)
+
 As seen above, the Red player's General is currently threatened by one of the Blue player's Cannons. The Blue player's two Cannons at e8 and f8, as well as their Chariot at d8, are capable of attacking every square in the Red player's palace. Because the Red player is incapable of moving their General to safety, blocking these attack paths, or capturing Blue's pieces in question, the game is over.
