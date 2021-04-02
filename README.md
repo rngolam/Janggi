@@ -45,7 +45,7 @@ game.make_move('a4','a4') # this will pass the Red player's turn and return True
 ![image](https://user-images.githubusercontent.com/69094063/111979348-f7cb6780-8ad2-11eb-95f9-86c099d93414.png)
 
 **Example Game Played Out**
-```
+```python
 game = JanggiGame()
 game.make_move('e7', 'e6')
 game.make_move('e2', 'e2')
