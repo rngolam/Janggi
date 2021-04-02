@@ -26,7 +26,7 @@ The rules of Janggi can be read [here](https://en.wikipedia.org/wiki/Janggi). No
 * SD = Soldier
 
 **Example Usage**
-```
+```python
 game = JanggiGame()
 move_result = game.make_move('c1', 'e3') # should return False because it's not Red's turn
 move_result = game.make_move('a7,'b7') # should return True
